@@ -40,6 +40,12 @@ class GerenciadorDeReservas:
         return [q for q in self.quartos if q.disponivel]
 
     def criar_reserva(self, cliente, quarto, check_in, check_out):
+        try:
+            datetime.strptime(check_in, "%Y-%m-%d")
+            datetime.strptime(check_out, "%Y-%m-%d")
+        except ValueError:
+            return None  # datas inválidas
+
         if quarto.disponivel:
             quarto.disponivel = False
             reserva = Reserva(cliente, quarto, check_in, check_out)
@@ -53,7 +59,7 @@ class GerenciadorDeReservas:
 
 # ------------------ INTERFACE ------------------
 def main(page: ft.Page):
-    page.title = "Raffy Hotel - Hotel Boutique"
+    page.title = "Raffy Hotel - Sistema de Reservas"
     page.padding = 20
     page.bgcolor = "#FFF8F0"
     page.vertical_alignment = ft.MainAxisAlignment.START
@@ -65,7 +71,7 @@ def main(page: ft.Page):
     sistema.adicionar_quarto(Quarto(102, "Double", 400))
     sistema.adicionar_quarto(Quarto(201, "Suite", 700))
 
-    # ------------------ FUNÇÃO DE NAVEGAÇÃO ------------------
+    # ------------------ NAVEGAÇÃO ------------------
     def mudar_tela(e):
         page.views.clear()
         page.views.append(telas[e.control.data])
@@ -74,8 +80,14 @@ def main(page: ft.Page):
     # ------------------ TELA INICIAL ------------------
     def tela_inicial():
         lista_quartos = ft.Column(
-            [ft.Text(f"Quarto {q.numero} - {q.tipo} - R$ {q.preco} - {'Disponível' if q.disponivel else 'Ocupado'}",
-                     size=16) for q in sistema.quartos],
+            [
+                ft.Text(
+                    f"Quarto {q.numero} - {q.tipo} - R$ {q.preco} - {'Disponível' if q.disponivel else 'Ocupado'}",
+                    size=16,
+                    color="#2E8B57" if q.disponivel else "#B22222"
+                )
+                for q in sistema.quartos
+            ],
             spacing=10
         )
 
@@ -108,11 +120,12 @@ def main(page: ft.Page):
             page.update()
 
         def adicionar(e):
-            if nome.value.strip() and email.value.strip():
-                cliente = Cliente(nome.value, telefone.value, email.value, len(sistema.clientes)+1)
-                sistema.adicionar_cliente(cliente)
-                nome.value = telefone.value = email.value = ""
-                atualizar_lista()
+            if not nome.value.strip() or not email.value.strip():
+                return
+            cliente = Cliente(nome.value, telefone.value, email.value, len(sistema.clientes) + 1)
+            sistema.adicionar_cliente(cliente)
+            nome.value = telefone.value = email.value = ""
+            atualizar_lista()
 
         atualizar_lista()
 
@@ -148,15 +161,15 @@ def main(page: ft.Page):
                 page.update()
                 return
             cliente_id = int(clientes_dropdown.value)
-            cliente = next(c for c in sistema.clientes if c.cliente_id==cliente_id)
+            cliente = next(c for c in sistema.clientes if c.cliente_id == cliente_id)
             quarto_num = int(quartos_dropdown.value)
-            quarto = next(q for q in sistema.quartos if q.numero==quarto_num)
+            quarto = next(q for q in sistema.quartos if q.numero == quarto_num)
             reserva = sistema.criar_reserva(cliente, quarto, check_in.value, check_out.value)
             if reserva:
                 mensagem.value = f"Reserva criada! Quarto {quarto.numero} para {cliente.nome}."
                 carregar_dados()
             else:
-                mensagem.value = "Erro: quarto indisponível."
+                mensagem.value = "Erro: datas inválidas ou quarto indisponível."
             page.update()
 
         carregar_dados()
